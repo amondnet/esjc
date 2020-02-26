@@ -1,3 +1,4 @@
+syntax = "proto2";
 package com.github.msemys.esjc.proto;
 
 enum OperationResult
