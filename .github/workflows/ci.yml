@@ -42,7 +42,7 @@ jobs:
         run: mvn clean verify org.sonarsource.scanner.maven:sonar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_LOGIN: ${{ secrets.SONAR_LOGIN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_LOGIN }}
       - name: Codecov
         uses: codecov/codecov-action@v1.0.5
         with:
