@@ -31,9 +31,9 @@
   </developers>
 
   <scm>
-    <connection>scm:git:git@github.com:msemys/esjc.git</connection>
-    <developerConnection>scm:git:git@github.com:msemys/esjc.git</developerConnection>
-    <url>git@github.com:msemys/esjc.git</url>
+    <connection>scm:git:git@github.com:amondnet/esjc.git</connection>
+    <developerConnection>scm:git:git@github.com:amondnet/esjc.git</developerConnection>
+    <url>git@github.com:amondnet/esjc.git</url>
   </scm>
 
   <properties>
