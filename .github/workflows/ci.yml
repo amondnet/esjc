@@ -33,7 +33,7 @@ jobs:
             -e EVENTSTORE_CERTIFICATE_FILE=/ssl/domain.p12 \
             -v ${PWD}/ssl:/ssl eventstore/eventstore:release-${{ matrix.eventstore }}
       - name: Build with Maven
-        run: mvn clean verify
+        run: mvn clean verify sonar:sonar
       - name: Codecov
         uses: codecov/codecov-action@v1.0.5
 
