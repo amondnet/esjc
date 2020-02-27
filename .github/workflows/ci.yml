@@ -34,6 +34,10 @@ jobs:
             -v ${PWD}/ssl:/ssl eventstore/eventstore:release-${{ matrix.eventstore }}
       - name: Build with Maven
         run: mvn clean verify sonar:sonar
+        env:
+          SONAR_LOGIN: ${{ secrets.SONAR_LOGIN }}
       - name: Codecov
         uses: codecov/codecov-action@v1.0.5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
