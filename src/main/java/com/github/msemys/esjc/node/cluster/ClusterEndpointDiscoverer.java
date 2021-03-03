@@ -7,6 +7,21 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.stream.JsonReader;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import okhttp3.ConnectionSpec;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +48,9 @@ public class ClusterEndpointDiscoverer implements EndpointDiscoverer {
     private final AtomicReference<List<MemberInfoDto>> oldGossip = new AtomicReference<>();
     private final ClusterNodeSettings settings;
     private final Gson gson;
+    private final OkHttpClient client = getUnsafeOkHttpClient();
+
+
 
     public ClusterEndpointDiscoverer(ClusterNodeSettings settings, ScheduledExecutorService scheduler) {
         checkNotNull(settings, "settings is null");
@@ -85,7 +103,7 @@ public class ClusterEndpointDiscoverer implements EndpointDiscoverer {
     }
 
     private Optional<NodeEndpoints> tryDiscover(InetSocketAddress failedEndpoint) {
-        List<MemberInfoDto> oldGossipCopy = oldGossip.getAndSet(null);
+      List<MemberInfoDto> oldGossipCopy = oldGossip.getAndSet(null);
 
         List<GossipSeed> gossipCandidates = (oldGossipCopy != null) ?
             getGossipCandidatesFromOldGossip(oldGossipCopy, failedEndpoint) : getGossipCandidatesFromDns();
@@ -178,22 +196,23 @@ public class ClusterEndpointDiscoverer implements EndpointDiscoverer {
     }
 
     private Optional<ClusterInfoDto> tryGetGossipFrom(GossipSeed gossipSeed) {
-        try {
-            URL url = new URL("http://" + gossipSeed.endpoint.getHostString() + ":" + gossipSeed.endpoint.getPort() + "/gossip?format=json");
 
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setConnectTimeout((int) settings.gossipTimeout.toMillis());
-            connection.setReadTimeout((int) settings.gossipTimeout.toMillis());
-            connection.setRequestMethod("GET");
-            connection.setRequestProperty("Accept", "application/json");
+      String url = "https://" + gossipSeed.endpoint.getHostString() + ":" + gossipSeed.endpoint.getPort() + "/gossip?format=json";
+      logger.debug("url : {}",url);
+      Request request = new Request.Builder()
+          .url(url)
+          .get()
+          .build();
 
-            if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"))) {
-                    return Optional.of(gson.fromJson(new JsonReader(reader), ClusterInfoDto.class));
-                }
+          try (Response response = client.newCall(request).execute()) {
+            if (response.isSuccessful()) {
+                    return Optional.of(gson.fromJson(new JsonReader(
+                        Objects.requireNonNull(response.body()).charStream()), ClusterInfoDto.class));
+
             }
         } catch (Exception e) {
             // ignore
+            logger.warn("get gossip error",e);
         }
 
         return Optional.empty();
@@ -231,5 +250,49 @@ public class ClusterEndpointDiscoverer implements EndpointDiscoverer {
                 return new NodeEndpoints(tcp, secureTcp);
             });
     }
+  private static OkHttpClient getUnsafeOkHttpClient() {
+    try {
+      // Create a trust manager that does not validate certificate chains
+      final TrustManager[] trustAllCerts = new TrustManager[] {
+          new X509TrustManager() {
+            @Override
+            public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+            }
 
+            @Override
+            public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+            }
+
+            @Override
+            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+              return new java.security.cert.X509Certificate[]{};
+            }
+          }
+      };
+
+      // Install the all-trusting trust manager
+      final SSLContext sslContext = SSLContext.getInstance("SSL");
+      sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+      // Create an ssl socket factory with our all-trusting manager
+      final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+
+      OkHttpClient.Builder builder = new OkHttpClient.Builder();
+      builder.sslSocketFactory(sslSocketFactory, (X509TrustManager)trustAllCerts[0]);
+      builder.hostnameVerifier(new HostnameVerifier() {
+        @Override
+        public boolean verify(String hostname, SSLSession session) {
+          return true;
+        }
+      });
+      builder.followRedirects(true);
+      builder.followSslRedirects(true);
+      builder.connectionSpecs(Arrays.asList(ConnectionSpec.MODERN_TLS, ConnectionSpec.COMPATIBLE_TLS));
+
+
+      OkHttpClient okHttpClient = builder.build();
+      return okHttpClient;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
 }

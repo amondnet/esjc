@@ -11,5 +11,7 @@ public enum VNodeState {
     Master,
     Manager,
     ShuttingDown,
-    Shutdown
+    Shutdown,
+    Leader,
+    Follower
 }
