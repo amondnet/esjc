@@ -497,6 +497,24 @@ public interface EventStore {
                                                            UserCredentials userCredentials);
 
     /**
+     * Reads all events in the node forward (e.g. beginning to end) asynchronously.
+     *
+     * @param position        the position (inclusive) to start reading from.
+     * @param maxCount        the maximum count of events to read, allowed range [1..4096].
+     * @param resolveLinkTos  whether to resolve link events automatically.
+     * @param userCredentials user credentials to be used for this operation (use {@code null} for default user credentials).
+     * @return a {@code CompletableFuture} representing the result of this operation. The future's methods
+     * {@code get} and {@code join} can throw an exception with cause {@link CommandNotExpectedException},
+     * {@link NotAuthenticatedException}, {@link AccessDeniedException} or {@link ServerErrorException}
+     * on exceptional completion.
+     */
+    CompletableFuture<AllEventsSlice> readAllEventsForwardFiltered(Position position,
+        int maxCount,
+        boolean resolveLinkTos,
+        EventFilter filter, int maxSearchWindow,
+        UserCredentials userCredentials);
+
+    /**
      * Reads all events in the node backwards (e.g. end to beginning) asynchronously using default user credentials.
      *
      * @param position       the position (exclusive) to start reading from.
