@@ -60,6 +60,7 @@ import static com.github.msemys.esjc.util.Ranges.BATCH_SIZE_RANGE;
 import static com.github.msemys.esjc.util.Strings.*;
 import static com.github.msemys.esjc.util.Threads.sleepUninterruptibly;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
+import static java.util.Collections.max;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.StreamSupport.stream;
@@ -178,7 +179,7 @@ public class EventStoreTcp implements EventStore {
         checkArgument(!isNullOrEmpty(stream), "stream is null or empty");
 
         CompletableFuture<DeleteResult> result = new CompletableFuture<>();
-        enqueue(new DeleteStreamOperation(result, settings.requireMaster, stream, expectedVersion, hardDelete, userCredentials));
+        enqueue(new DeleteStreamOperation(result, settings.requireLeader, stream, expectedVersion, hardDelete, userCredentials));
         return result;
     }
 
@@ -191,7 +192,7 @@ public class EventStoreTcp implements EventStore {
         checkNotNull(events, "events is null");
 
         CompletableFuture<WriteResult> result = new CompletableFuture<>();
-        enqueue(new AppendToStreamOperation(result, settings.requireMaster, stream, expectedVersion, events, userCredentials));
+        enqueue(new AppendToStreamOperation(result, settings.requireLeader, stream, expectedVersion, events, userCredentials));
         return result;
     }
 
@@ -204,7 +205,7 @@ public class EventStoreTcp implements EventStore {
         checkNotNull(events, "events is null");
 
         CompletableFuture<WriteAttemptResult> result = new CompletableFuture<>();
-        enqueue(new TryAppendToStreamOperation(result, settings.requireMaster, stream, expectedVersion, events, userCredentials));
+        enqueue(new TryAppendToStreamOperation(result, settings.requireLeader, stream, expectedVersion, events, userCredentials));
         return result;
     }
 
@@ -215,7 +216,7 @@ public class EventStoreTcp implements EventStore {
         checkArgument(!isNullOrEmpty(stream), "stream is null or empty");
 
         CompletableFuture<Transaction> result = new CompletableFuture<>();
-        enqueue(new StartTransactionOperation(result, settings.requireMaster, stream, expectedVersion, transactionManager, userCredentials));
+        enqueue(new StartTransactionOperation(result, settings.requireLeader, stream, expectedVersion, transactionManager, userCredentials));
         return result;
     }
 
@@ -233,7 +234,7 @@ public class EventStoreTcp implements EventStore {
         checkArgument(eventNumber >= StreamPosition.END, "eventNumber out of range");
 
         CompletableFuture<EventReadResult> result = new CompletableFuture<>();
-        enqueue(new ReadEventOperation(result, stream, eventNumber, resolveLinkTos, settings.requireMaster, userCredentials));
+        enqueue(new ReadEventOperation(result, stream, eventNumber, resolveLinkTos, settings.requireLeader, userCredentials));
         return result;
     }
 
@@ -248,7 +249,7 @@ public class EventStoreTcp implements EventStore {
         checkArgument(BATCH_SIZE_RANGE.contains(maxCount), "maxCount is out of range. Allowed range: %s.", BATCH_SIZE_RANGE.toString());
 
         CompletableFuture<StreamEventsSlice> result = new CompletableFuture<>();
-        enqueue(new ReadStreamEventsForwardOperation(result, stream, eventNumber, maxCount, resolveLinkTos, settings.requireMaster, userCredentials));
+        enqueue(new ReadStreamEventsForwardOperation(result, stream, eventNumber, maxCount, resolveLinkTos, settings.requireLeader, userCredentials));
         return result;
     }
 
@@ -263,7 +264,7 @@ public class EventStoreTcp implements EventStore {
         checkArgument(BATCH_SIZE_RANGE.contains(maxCount), "maxCount is out of range. Allowed range: %s.", BATCH_SIZE_RANGE.toString());
 
         CompletableFuture<StreamEventsSlice> result = new CompletableFuture<>();
-        enqueue(new ReadStreamEventsBackwardOperation(result, stream, eventNumber, maxCount, resolveLinkTos, settings.requireMaster, userCredentials));
+        enqueue(new ReadStreamEventsBackwardOperation(result, stream, eventNumber, maxCount, resolveLinkTos, settings.requireLeader, userCredentials));
         return result;
     }
 
@@ -275,7 +276,25 @@ public class EventStoreTcp implements EventStore {
         checkArgument(BATCH_SIZE_RANGE.contains(maxCount), "maxCount is out of range. Allowed range: %s.", BATCH_SIZE_RANGE.toString());
 
         CompletableFuture<AllEventsSlice> result = new CompletableFuture<>();
-        enqueue(new ReadAllEventsForwardOperation(result, position, maxCount, resolveLinkTos, settings.requireMaster, userCredentials));
+        enqueue(new ReadAllEventsForwardOperation(result, position, maxCount, resolveLinkTos, settings.requireLeader, userCredentials));
+        return result;
+    }
+
+    @Override
+    public CompletableFuture<AllEventsSlice> filteredReadAllEventsForward(Position position,
+        int maxCount, boolean resolveLinkTos, Filter filter, Integer maxSearchWindow,
+        UserCredentials userCredentials) {
+        int maxSearchWindowInternal = maxSearchWindow != null ? maxSearchWindow : maxCount;
+
+        checkArgument(maxCount >= 0, "maxCount");
+        checkArgument(maxSearchWindowInternal >=0 , "maxSearchWindow");
+        checkArgument(maxSearchWindowInternal >= maxCount, "maxSearchWindow");
+        checkArgument(filter!= null , "filter");
+        checkArgument(BATCH_SIZE_RANGE.contains(maxCount), "maxCount is out of range. Allowed range: %s.", BATCH_SIZE_RANGE.toString());
+
+        CompletableFuture<AllEventsSlice> result = new CompletableFuture<>();
+        enqueue(new FilteredReadAllEventsForwardOperation(result, position, maxCount, resolveLinkTos, settings.requireLeader, maxSearchWindowInternal,filter.getValue()
+            ,userCredentials));
         return result;
     }
 
@@ -287,7 +306,25 @@ public class EventStoreTcp implements EventStore {
         checkArgument(BATCH_SIZE_RANGE.contains(maxCount), "maxCount is out of range. Allowed range: %s.", BATCH_SIZE_RANGE.toString());
 
         CompletableFuture<AllEventsSlice> result = new CompletableFuture<>();
-        enqueue(new ReadAllEventsBackwardOperation(result, position, maxCount, resolveLinkTos, settings.requireMaster, userCredentials));
+        enqueue(new ReadAllEventsBackwardOperation(result, position, maxCount, resolveLinkTos, settings.requireLeader, userCredentials));
+        return result;
+    }
+
+    @Override
+    public CompletableFuture<AllEventsSlice> filteredReadAllEventsBackward(Position position,
+        int maxCount, boolean resolveLinkTos, Filter filter, Integer maxSearchWindow,
+        UserCredentials userCredentials) {
+        int maxSearchWindowInternal = maxSearchWindow != null ? maxSearchWindow : maxCount;
+
+        checkArgument(maxCount > 0, "maxCount");
+        checkArgument(maxSearchWindowInternal > 0, "maxSearchWindow");
+        checkArgument(maxSearchWindowInternal >= maxCount, "maxSearchWindow");
+        checkNotNull(filter, "filter");
+
+        checkArgument(BATCH_SIZE_RANGE.contains(maxCount), "maxCount is out of range. Allowed range: %s.", BATCH_SIZE_RANGE.toString());
+
+        CompletableFuture<AllEventsSlice> result = new CompletableFuture<>();
+        enqueue(new FilteredReadAllEventsBackwardOperation(result, position, maxCount, resolveLinkTos, settings.requireLeader,  maxSearchWindowInternal,filter.getValue(), userCredentials));
         return result;
     }
 
@@ -512,7 +549,7 @@ public class EventStoreTcp implements EventStore {
             .jsonData(metadata)
             .build();
 
-        enqueue(new AppendToStreamOperation(result, settings.requireMaster, SystemStreams.metastreamOf(stream),
+        enqueue(new AppendToStreamOperation(result, settings.requireLeader, SystemStreams.metastreamOf(stream),
             expectedMetastreamVersion, singletonList(metaevent), userCredentials));
 
         return result;
@@ -1028,7 +1065,7 @@ public class EventStoreTcp implements EventStore {
             checkNotNull(events, "events is null");
 
             CompletableFuture<Void> result = new CompletableFuture<>();
-            enqueue(new TransactionalWriteOperation(result, settings.requireMaster, transaction.transactionId, events, userCredentials));
+            enqueue(new TransactionalWriteOperation(result, settings.requireLeader, transaction.transactionId, events, userCredentials));
             return result;
         }
 
@@ -1037,7 +1074,7 @@ public class EventStoreTcp implements EventStore {
             checkNotNull(transaction, "transaction is null");
 
             CompletableFuture<WriteResult> result = new CompletableFuture<>();
-            enqueue(new CommitTransactionOperation(result, settings.requireMaster, transaction.transactionId, userCredentials));
+            enqueue(new CommitTransactionOperation(result, settings.requireLeader, transaction.transactionId, userCredentials));
             return result;
         }
     }

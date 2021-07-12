@@ -79,12 +79,12 @@ public class Settings {
     public final Duration heartbeatTimeout;
 
     /**
-     * Whether or not all write and read requests to be served only by master.
+     * Whether or not all write and read requests to be served only by leader.
      * <p>
      * <b>Note:</b> this option is used for cluster only.
      * </p>
      */
-    public final boolean requireMaster;
+    public final boolean requireLeader;
 
     /**
      * The default user credentials to use for operations where other user credentials are not explicitly supplied.
@@ -156,7 +156,7 @@ public class Settings {
         reconnectionDelay = builder.reconnectionDelay;
         heartbeatInterval = builder.heartbeatInterval;
         heartbeatTimeout = builder.heartbeatTimeout;
-        requireMaster = builder.requireMaster;
+        requireLeader = builder.requireMaster;
         userCredentials = builder.userCredentials;
         operationTimeout = builder.operationTimeout;
         operationTimeoutCheckInterval = builder.operationTimeoutCheckInterval;
@@ -183,7 +183,7 @@ public class Settings {
         sb.append(", reconnectionDelay=").append(reconnectionDelay);
         sb.append(", heartbeatInterval=").append(heartbeatInterval);
         sb.append(", heartbeatTimeout=").append(heartbeatTimeout);
-        sb.append(", requireMaster=").append(requireMaster);
+        sb.append(", requireMaster=").append(requireLeader);
         sb.append(", userCredentials=").append(userCredentials);
         sb.append(", operationTimeout=").append(operationTimeout);
         sb.append(", operationTimeoutCheckInterval=").append(operationTimeoutCheckInterval);

@@ -2,7 +2,7 @@ package com.github.msemys.esjc.operation;
 
 import com.github.msemys.esjc.UserCredentials;
 import com.github.msemys.esjc.proto.EventStoreClientMessages.NotHandled;
-import com.github.msemys.esjc.proto.EventStoreClientMessages.NotHandled.MasterInfo;
+import com.github.msemys.esjc.proto.EventStoreClientMessages.NotHandled.LeaderInfo;
 import com.github.msemys.esjc.tcp.TcpCommand;
 import com.github.msemys.esjc.tcp.TcpFlag;
 import com.github.msemys.esjc.tcp.TcpPackage;
@@ -126,7 +126,7 @@ public abstract class AbstractOperation<T, R extends MessageLite> implements Ope
                             .description("NotHandled - TooBusy")
                             .build();
                 case NotMaster:
-                    MasterInfo masterInfo = MasterInfo.parseFrom(message.getAdditionalInfo().toByteArray());
+                    LeaderInfo masterInfo = LeaderInfo.parseFrom(message.getAdditionalInfo().toByteArray());
                     return InspectionResult.newBuilder()
                             .decision(InspectionDecision.Reconnect)
                             .description("NotHandled - NotMaster")

@@ -62,7 +62,7 @@ public class EventStoreBuilder {
             .reconnectionDelay(settings.reconnectionDelay)
             .heartbeatInterval(settings.heartbeatInterval)
             .heartbeatTimeout(settings.heartbeatTimeout)
-            .requireMaster(settings.requireMaster)
+            .requireMaster(settings.requireLeader)
             .userCredentials(settings.userCredentials)
             .operationTimeout(settings.operationTimeout)
             .operationTimeoutCheckInterval(settings.operationTimeoutCheckInterval)

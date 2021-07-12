@@ -232,7 +232,7 @@ public class EventStoreBuilderTest {
         assertTrue(result.settings().tcpSettings.noDelay);
         assertEquals(11110, result.settings().tcpSettings.sendBufferSize);
         assertTrue(result.settings().sslSettings.useSslConnection);
-        assertTrue(result.settings().requireMaster);
+        assertTrue(result.settings().requireLeader);
         assertTrue(result.settings().failOnNoServerResponse);
     }
 
@@ -287,7 +287,7 @@ public class EventStoreBuilderTest {
         assertTrue(result.settings().tcpSettings.noDelay);
         assertEquals(11110, result.settings().tcpSettings.sendBufferSize);
         assertTrue(result.settings().sslSettings.useSslConnection);
-        assertTrue(result.settings().requireMaster);
+        assertTrue(result.settings().requireLeader);
         assertTrue(result.settings().failOnNoServerResponse);
     }
 

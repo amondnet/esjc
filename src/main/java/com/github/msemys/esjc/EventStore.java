@@ -495,23 +495,43 @@ public interface EventStore {
                                                            int maxCount,
                                                            boolean resolveLinkTos,
                                                            UserCredentials userCredentials);
-
     /**
-     * Reads all events in the node forward (e.g. beginning to end) asynchronously.
+     * Asynchronously reads all events in the node forward (e.g. beginning to end). Filters events based upon the passed in filter.
      *
      * @param position        the position (inclusive) to start reading from.
      * @param maxCount        the maximum count of events to read, allowed range [1..4096].
      * @param resolveLinkTos  whether to resolve link events automatically.
+     * @param filter          An {@link Filter}  to be applied to the read operation.
+     * @return a {@code CompletableFuture} representing the result of this operation. The future's methods
+     * {@code get} and {@code join} can throw an exception with cause {@link CommandNotExpectedException},
+     * {@link NotAuthenticatedException}, {@link AccessDeniedException} or {@link ServerErrorException}
+     * on exceptional completion.
+     */
+    default CompletableFuture<AllEventsSlice> filteredReadAllEventsForward(Position position,
+        int maxCount,
+        boolean resolveLinkTos,
+        Filter filter) {
+        return filteredReadAllEventsForward(position, maxCount, resolveLinkTos, filter, null, null);
+    }
+
+    /**
+     * Asynchronously reads all events in the node forward (e.g. beginning to end). Filters events based upon the passed in filter.
+     *
+     * @param position        the position (inclusive) to start reading from.
+     * @param maxCount        the maximum count of events to read, allowed range [1..4096].
+     * @param resolveLinkTos  whether to resolve link events automatically.
+     * @param filter          An {@link Filter}  to be applied to the read operation.
+     * @param maxSearchWindow The maximum number of events examined before returning a slice.
      * @param userCredentials user credentials to be used for this operation (use {@code null} for default user credentials).
      * @return a {@code CompletableFuture} representing the result of this operation. The future's methods
      * {@code get} and {@code join} can throw an exception with cause {@link CommandNotExpectedException},
      * {@link NotAuthenticatedException}, {@link AccessDeniedException} or {@link ServerErrorException}
      * on exceptional completion.
      */
-    CompletableFuture<AllEventsSlice> readAllEventsForwardFiltered(Position position,
+    CompletableFuture<AllEventsSlice> filteredReadAllEventsForward(Position position,
         int maxCount,
         boolean resolveLinkTos,
-        EventFilter filter, int maxSearchWindow,
+        Filter filter, Integer maxSearchWindow,
         UserCredentials userCredentials);
 
     /**
@@ -548,6 +568,65 @@ public interface EventStore {
                                                             int maxCount,
                                                             boolean resolveLinkTos,
                                                             UserCredentials userCredentials);
+
+    /**
+     * Reads all events in the node backwards (e.g. end to beginning) asynchronously.
+     *
+     * @param position        the position (exclusive) to start reading from.
+     * @param maxCount        the maximum count of events to read, allowed range [1..4096].
+     * @param resolveLinkTos  whether to resolve link events automatically.
+     * @return a {@code CompletableFuture} representing the result of this operation. The future's methods
+     * {@code get} and {@code join} can throw an exception with cause {@link CommandNotExpectedException},
+     * {@link NotAuthenticatedException}, {@link AccessDeniedException} or {@link ServerErrorException}
+     * on exceptional completion.
+     */
+    default CompletableFuture<AllEventsSlice> filteredReadAllEventsBackward(Position position,
+        int maxCount,
+        boolean resolveLinkTos,
+        Filter filter) {
+        return filteredReadAllEventsBackward(position,maxCount,resolveLinkTos,filter, null, null);
+    }
+
+    /**
+     * Reads all events in the node backwards (e.g. end to beginning) asynchronously.
+     *
+     * @param position        the position (exclusive) to start reading from.
+     * @param maxCount        the maximum count of events to read, allowed range [1..4096].
+     * @param resolveLinkTos  whether to resolve link events automatically.
+     * @param filter          An {@link Filter}  to be applied to the read operation.
+     * @param maxSearchWindow The maximum number of events examined before returning a slice.
+     * @return a {@code CompletableFuture} representing the result of this operation. The future's methods
+     * {@code get} and {@code join} can throw an exception with cause {@link CommandNotExpectedException},
+     * {@link NotAuthenticatedException}, {@link AccessDeniedException} or {@link ServerErrorException}
+     * on exceptional completion.
+     */
+    default CompletableFuture<AllEventsSlice> filteredReadAllEventsBackward(Position position,
+        int maxCount,
+        boolean resolveLinkTos,
+        Filter filter, int maxSearchWindow) {
+        return filteredReadAllEventsBackward(position,maxCount,resolveLinkTos,filter, maxSearchWindow, null);
+    }
+
+
+    /**
+     * Asynchronously reads all events in the node forward (e.g. beginning to end). Filters events based upon the passed in filter.
+     *
+     * @param position        the position (exclusive) to start reading from.
+     * @param maxCount        the maximum count of events to read, allowed range [1..4096].
+     * @param resolveLinkTos  whether to resolve link events automatically.
+     * @param filter          An {@link Filter}  to be applied to the read operation.
+     * @param maxSearchWindow The maximum number of events examined before returning a slice.
+     * @param userCredentials user credentials to be used for this operation (use {@code null} for default user credentials).
+     * @return a {@code CompletableFuture} representing the result of this operation. The future's methods
+     * {@code get} and {@code join} can throw an exception with cause {@link CommandNotExpectedException},
+     * {@link NotAuthenticatedException}, {@link AccessDeniedException} or {@link ServerErrorException}
+     * on exceptional completion.
+     */
+    CompletableFuture<AllEventsSlice> filteredReadAllEventsBackward(Position position,
+        int maxCount,
+        boolean resolveLinkTos,
+        Filter filter, Integer maxSearchWindow,
+        UserCredentials userCredentials);
 
     /**
      * Iterates over events in a stream from the specified start position to the end of stream using default user credentials.

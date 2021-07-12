@@ -69,8 +69,18 @@ public abstract class AbstractEventStoreTest {
         .build();
   }
 
+  protected static EventData newTestEvent(String eventType) {
+    return EventData.newBuilder()
+        .type(eventType)
+        .build();
+  }
+
   protected static List<EventData> newTestEvents(int count) {
     return range(0, count).mapToObj(i -> newTestEvent()).collect(toList());
+  }
+
+  protected static List<EventData> newTestEvents(int count, String eventType) {
+    return range(0, count).mapToObj(i -> newTestEvent(eventType)).collect(toList());
   }
 
   protected static <T> List<T> reverse(List<T> list) {

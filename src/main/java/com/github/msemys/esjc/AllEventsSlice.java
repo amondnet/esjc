@@ -33,6 +33,11 @@ public class AllEventsSlice {
      */
     public final List<ResolvedEvent> events;
 
+    /**
+     *     A boolean representing whether or not this is the end of the $all stream.
+     */
+    private final boolean isEndOfStream;
+
     public AllEventsSlice(ReadDirection readDirection,
                           Position fromPosition,
                           Position nextPosition,
@@ -43,15 +48,24 @@ public class AllEventsSlice {
         this.events = (events == null) ? emptyList() : events.stream()
                 .map(ResolvedEvent::new)
                 .collect(toCollection(() -> new ArrayList<>(events.size())));
+        this.isEndOfStream = events == null || events.size() == 0;
     }
 
-    /**
-     * Determines whether or not this is the end of the $all stream.
-     *
-     * @return {@code true} if the $all stream is ended, otherwise {@code false}
-     */
-    public boolean isEndOfStream() {
-        return events.isEmpty();
+    public AllEventsSlice(ReadDirection readDirection,
+        Position fromPosition,
+        Position nextPosition,
+        List<EventStoreClientMessages.ResolvedEvent> events, boolean isEndOfStream) {
+        this.readDirection = readDirection;
+        this.fromPosition = fromPosition;
+        this.nextPosition = nextPosition;
+        this.events = (events == null) ? emptyList() : events.stream()
+            .map(ResolvedEvent::new)
+            .collect(toCollection(() -> new ArrayList<>(events.size())));
+        this.isEndOfStream = isEndOfStream;
     }
 
+
+    public boolean isEndOfStream () {
+        return isEndOfStream;
+    }
 }
